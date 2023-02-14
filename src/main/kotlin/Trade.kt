@@ -60,11 +60,11 @@ class Trade constructor (
         return type
     }
 
-//    operator fun compareTo(trade: Trade): Int {
-//        return if (value > trade.value) {
-//            1
-//        } else if (value < trade.value) {
-//            -1
-//        } else 0
-//    }
+    operator fun compareTo(trade: Trade): Int {
+        return if ((price * quantity) > (trade.price * trade.quantity)) {
+            1
+        } else if ((price * quantity) < (trade.price * trade.quantity)) {
+            -1
+        } else 0
+    }
 }

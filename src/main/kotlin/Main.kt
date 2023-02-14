@@ -4,13 +4,18 @@ import java.io.FileReader
 import java.io.IOException
 
 var list = ArrayList<Trade>()
+var set = mutableSetOf<String>()
 fun main(args: Array<String>) {
     read()
+    println(" * * * SUMMARY * * * ")
     numberOfTrades()
     numberOfExtendedTrades()
     totalValueOfBuyTrades()
     totalValueOfSellTrades()
     lengthOfTheLongestComment()
+    numberOfFirmIDs()
+    listUniqueFirms()
+    listProductIDs()
 }
 
 fun numberOfTrades() {
@@ -69,6 +74,21 @@ fun lengthOfTheLongestComment() {
     println("Length of the longest comment is: " + count)
     println("The longest comment is: " + comment)
 }
+
+fun numberOfFirmIDs() {
+    println("Total number of unique firms: " + set.size)
+}
+
+fun listUniqueFirms() {
+    println("List of firms IDs: ")
+    set.forEach { print(it + "|") }
+    println()
+}
+
+fun listProductIDs() {
+    println("List product IDs in ascending order along with their values: ")
+    list.sortedWith(CompareTrades).forEach() { println(it.getItemID() + " " + it.getPrice()*it.getQuantity()) }
+}
 fun read() {
     val file = File("trades.csv")
     try {
@@ -89,8 +109,10 @@ fun read() {
                 var itemID: String? = br.readLine()
                 var price = br.readLine()
                 var quantity = br.readLine()
-                var buyer: String? = br.readLine()
-                var seller: String? = br.readLine()
+                var buyer: String = br.readLine()
+                var seller: String = br.readLine()
+                set.add(buyer)
+                set.add(seller)
                 var comment = ""
                 if(type.equals("Trade")) {
                     comment = br.readLine()
