@@ -1,12 +1,17 @@
+import org.apache.commons.csv.CSVFormat
+import org.apache.commons.csv.CSVParser
 import java.io.File
 import java.io.BufferedReader
 import java.io.FileReader
 import java.io.IOException
+import java.nio.file.Paths
+import kotlin.io.path.bufferedReader
 
 var list = ArrayList<Trade>()
 var set = mutableSetOf<String>()
 fun main(args: Array<String>) {
-    read()
+    readWithCSVParser()
+//    readWithoutCSVParser()
     println(" * * * SUMMARY * * * ")
     numberOfTrades()
     numberOfExtendedTrades()
@@ -18,6 +23,33 @@ fun main(args: Array<String>) {
     listProductIDs()
 }
 
+fun readWithCSVParser() {
+    val bufferedReader = Paths.get("input.csv").bufferedReader()
+    val csvParser = CSVParser(bufferedReader, CSVFormat.DEFAULT)
+
+    for (csvRecord in csvParser) {
+        var i = 0
+        val type = csvRecord.get(i++)
+        if(type.equals("Extended trade")) {
+            i++
+        }
+        val dateTime = csvRecord.get(i++)
+        val direction = csvRecord.get(i++)
+        var itemID = csvRecord.get(i++)
+        var price = csvRecord.get(i++)
+        var quantity = csvRecord.get(i++)
+        var seller = csvRecord.get(i++)
+        var buyer = csvRecord.get(i++)
+        set.add(buyer)
+        set.add(seller)
+        var comment = csvRecord.get(i++)
+
+        val t : Trade = Trade(type, 0, dateTime, direction, itemID, price.toDouble(), quantity.toInt(), buyer, seller, comment)
+        list.add(t)
+
+//        println(type + " " + dateTime + " " + direction + " " + itemID + " " + price + " " + quantity + " " + seller + " " + buyer + " " + comment)
+    }
+}
 fun numberOfTrades() {
     var count : Int = 0
     for (i in list) {
@@ -89,7 +121,7 @@ fun listProductIDs() {
     println("List product IDs in ascending order along with their values: ")
     list.sortedWith(CompareTrades).forEach() { println(it.getItemID() + " " + it.getPrice()*it.getQuantity()) }
 }
-fun read() {
+fun readWithoutCSVParser() {
     val file = File("trades.csv")
     try {
         BufferedReader(FileReader(file)).use { br ->
