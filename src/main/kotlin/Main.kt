@@ -5,10 +5,6 @@ import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.font.PDFont
 import org.apache.pdfbox.pdmodel.font.PDType1Font
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileReader
-import java.io.IOException
 import java.nio.file.Paths
 import kotlin.io.path.bufferedReader
 
@@ -18,7 +14,6 @@ var set = mutableSetOf<String>()
 var result = ArrayList<String>()
 fun main(args: Array<String>) {
     readWithCSVParser()
-//    readWithoutCSVParser()
     result.add(" * * * SUMMARY * * * ")
     result.add("")
     numberOfTrades()
@@ -63,8 +58,6 @@ fun readWithCSVParser() {
 
         val t : Trade = Trade(type, 0, dateTime, direction, itemID, price.toDouble(), quantity.toInt(), buyer, seller, comment)
         list.add(t)
-
-//        println(type + " " + dateTime + " " + direction + " " + itemID + " " + price + " " + quantity + " " + seller + " " + buyer + " " + comment)
     }
 }
 fun numberOfTrades() {
@@ -137,49 +130,6 @@ fun listProductIDs() {
     result.add("List product IDs in ascending order along with their values: ")
     list.sortedWith(CompareTrades).forEach() { result.add(it.getItemID() + " " + it.getPrice()*it.getQuantity()) }
 }
-fun readWithoutCSVParser() {
-    val file = File("trades.csv")
-    try {
-        BufferedReader(FileReader(file)).use { br ->
-            var line: String?
-            while (br.readLine().also { line = it } != null) {
-                if (line.equals("")) {
-                    line = br.readLine()
-                    if (line == null) break;
-                }
-                var type = line
-                var version = ""
-                if(! type.equals("Trade")) {
-                    version = br.readLine()
-                }
-                var date: String? = br.readLine()
-                var direction: String? = br.readLine()
-                var itemID: String? = br.readLine()
-                var price = br.readLine()
-                var quantity = br.readLine()
-                var buyer: String = br.readLine()
-                var seller: String = br.readLine()
-                set.add(buyer)
-                set.add(seller)
-                var comment = ""
-                if(type.equals("Trade")) {
-                    comment = br.readLine()
-                }
-                var nested = ""
-                if(! type.equals("Trade")) {
-                    while (! br.readLine().equals("")) {
-                        nested += ""
-                    }
-                }
-                val t : Trade = Trade(type, 0, date, direction, itemID, price.toDouble(), quantity.toInt(), buyer, seller, comment)
-                list.add(t)
-//                println(type + " " + date + " " + direction + " " + itemID + " " + price + " " + quantity + " " + buyer + " " +seller + " " +comment )
-            }
-        }
-    } catch (e: IOException) {
-        e.printStackTrace()
-    }
-}
 
 fun writeInPDF() {
     val document = PDDocument()
@@ -199,7 +149,6 @@ fun writeInPDF() {
         contentStream.endText()
         ty -= 20F
     }
-
 
     contentStream.close()
 

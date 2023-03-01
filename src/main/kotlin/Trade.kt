@@ -8,14 +8,8 @@ class Trade constructor (
     private var quantity: Int = 0,
     private var buyer: String? = null,
     private var seller: String? = null,
-//    private var nested: String? = null,
-//    private var value: Double = 0.0,
     private var comment: String? = null
 ) {
-//    fun getValue(): Double {
-//        return value
-//    }
-
     fun getPrice(): Double {
         return price
     }
@@ -47,10 +41,6 @@ class Trade constructor (
     fun getItemID(): String? {
         return itemID
     }
-
-//    fun getNested(): String? {
-//        return nested
-//    }
 
     fun getSeller(): String? {
         return seller
