@@ -1,26 +1,43 @@
 import org.apache.commons.csv.CSVFormat
 import org.apache.commons.csv.CSVParser
-import java.io.File
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.pdmodel.PDPage
+import org.apache.pdfbox.pdmodel.PDPageContentStream
+import org.apache.pdfbox.pdmodel.font.PDFont
+import org.apache.pdfbox.pdmodel.font.PDType1Font
 import java.io.BufferedReader
+import java.io.File
 import java.io.FileReader
 import java.io.IOException
 import java.nio.file.Paths
 import kotlin.io.path.bufferedReader
 
+
 var list = ArrayList<Trade>()
 var set = mutableSetOf<String>()
+var result = ArrayList<String>()
 fun main(args: Array<String>) {
     readWithCSVParser()
 //    readWithoutCSVParser()
-    println(" * * * SUMMARY * * * ")
+    result.add(" * * * SUMMARY * * * ")
+    result.add("")
     numberOfTrades()
+    result.add("")
     numberOfExtendedTrades()
+    result.add("")
     totalValueOfBuyTrades()
+    result.add("")
     totalValueOfSellTrades()
+    result.add("")
     lengthOfTheLongestComment()
+    result.add("")
     numberOfFirmIDs()
+    result.add("")
     listUniqueFirms()
+    result.add("")
     listProductIDs()
+    result.add("")
+    writeInPDF()
 }
 
 fun readWithCSVParser() {
@@ -57,7 +74,7 @@ fun numberOfTrades() {
             count++
         }
     }
-    println("Number of trades is: " + count)
+    result.add("Number of trades is: " + count)
 }
 
 fun numberOfExtendedTrades() {
@@ -67,7 +84,7 @@ fun numberOfExtendedTrades() {
             count++
         }
     }
-    println("Number of extended trades is: " + count)
+    result.add("Number of extended trades is: " + count)
 }
 
 fun totalValueOfBuyTrades() {
@@ -77,7 +94,7 @@ fun totalValueOfBuyTrades() {
             sum += (i.getQuantity() * i.getPrice())
         }
     }
-    println("Total value of BUY trades and extended trades is " + sum)
+    result.add("Total value of BUY trades and extended trades is " + sum)
 }
 
 fun totalValueOfSellTrades() {
@@ -87,7 +104,7 @@ fun totalValueOfSellTrades() {
             sum += (i.getQuantity() * i.getPrice())
         }
     }
-    println("Total value of SELL trades and extended trades is " + sum)
+    result.add("Total value of SELL trades and extended trades is " + sum)
 }
 
 fun lengthOfTheLongestComment() {
@@ -103,23 +120,22 @@ fun lengthOfTheLongestComment() {
         }
     }
 
-    println("Length of the longest comment is: " + count)
-    println("The longest comment is: " + comment)
+    result.add("Length of the longest comment is: " + count)
+    result.add("The longest comment is: " + comment)
 }
 
 fun numberOfFirmIDs() {
-    println("Total number of unique firms: " + set.size)
+    result.add("Total number of unique firms: " + set.size)
 }
 
 fun listUniqueFirms() {
-    println("List of firms IDs: ")
-    set.forEach { print(it + "|") }
-    println()
+    result.add("List of firms IDs: ")
+    set.forEach { result.add((it + "|")) }
 }
 
 fun listProductIDs() {
-    println("List product IDs in ascending order along with their values: ")
-    list.sortedWith(CompareTrades).forEach() { println(it.getItemID() + " " + it.getPrice()*it.getQuantity()) }
+    result.add("List product IDs in ascending order along with their values: ")
+    list.sortedWith(CompareTrades).forEach() { result.add(it.getItemID() + " " + it.getPrice()*it.getQuantity()) }
 }
 fun readWithoutCSVParser() {
     val file = File("trades.csv")
@@ -163,4 +179,30 @@ fun readWithoutCSVParser() {
     } catch (e: IOException) {
         e.printStackTrace()
     }
+}
+
+fun writeInPDF() {
+    val document = PDDocument()
+    val page = PDPage()
+    document.addPage(page)
+
+    val font: PDFont = PDType1Font.HELVETICA_BOLD
+    val contentStream = PDPageContentStream(document, page)
+
+    var tx = 100F
+    var ty = 700F
+    for (line in result) {
+        contentStream.beginText()
+        contentStream.setFont(font, 12F)
+        contentStream.moveTextPositionByAmount(tx, ty)
+        contentStream.drawString(line)
+        contentStream.endText()
+        ty -= 20F
+    }
+
+
+    contentStream.close()
+
+    document.save("Summary.pdf")
+    document.close()
 }

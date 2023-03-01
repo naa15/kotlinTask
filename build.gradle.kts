@@ -16,6 +16,8 @@ dependencies {
     testImplementation(kotlin("test"))
 
     implementation("org.apache.commons:commons-csv:1.5")
+    // https://mvnrepository.com/artifact/org.apache.pdfbox/pdfbox
+    implementation("org.apache.pdfbox:pdfbox:2.0.1")
 }
 
 tasks.test {
