@@ -5,13 +5,16 @@ import org.apache.pdfbox.pdmodel.PDPage
 import org.apache.pdfbox.pdmodel.PDPageContentStream
 import org.apache.pdfbox.pdmodel.font.PDFont
 import org.apache.pdfbox.pdmodel.font.PDType1Font
+import java.math.BigDecimal
 import java.nio.file.Paths
+import java.sql.Time
 import kotlin.io.path.bufferedReader
 
 
-var list = ArrayList<Trade>()
+var list = mutableListOf<Trade>()
 var set = mutableSetOf<String>()
-var result = ArrayList<String>()
+var result = mutableListOf<String>()
+var map = mutableMapOf<String, BigDecimal>()
 fun main(args: Array<String>) {
     readWithCSVParser()
     result.add(" * * * SUMMARY * * * ")
@@ -26,12 +29,13 @@ fun main(args: Array<String>) {
     result.add("")
     lengthOfTheLongestComment()
     result.add("")
+    tradeInterval()
+    result.add("")
     numberOfFirmIDs()
     result.add("")
     listUniqueFirms()
     result.add("")
     listProductIDs()
-    result.add("")
     writeInPDF()
 }
 
@@ -42,7 +46,7 @@ fun readWithCSVParser() {
     for (csvRecord in csvParser) {
         var i = 0
         val type = csvRecord.get(i++)
-        if(type.equals("Extended trade")) {
+        if(type == "Extended trade") {
             i++
         }
         val dateTime = csvRecord.get(i++)
@@ -56,14 +60,19 @@ fun readWithCSVParser() {
         set.add(seller)
         var comment = csvRecord.get(i++)
 
-        val t : Trade = Trade(type, 0, dateTime, direction, itemID, price.toDouble(), quantity.toInt(), buyer, seller, comment)
+        val t : Trade = Trade(type, 0, dateTime, direction, itemID, price.toBigDecimal(), quantity.toInt(), buyer, seller, comment)
+        if(map.containsKey(itemID)) {
+            map[itemID] = map[itemID]!! + price.toBigDecimal() * quantity.toBigDecimal()
+        } else {
+            map.put(itemID, price.toBigDecimal() * quantity.toBigDecimal())
+        }
         list.add(t)
     }
 }
 fun numberOfTrades() {
     var count : Int = 0
     for (i in list) {
-        if (i.getType().equals("Trade")) {
+        if (i.type == "Trade") {
             count++
         }
     }
@@ -73,7 +82,7 @@ fun numberOfTrades() {
 fun numberOfExtendedTrades() {
     var count : Int = 0
     for (i in list) {
-        if (! i.getType().equals("Trade")) {
+        if (i.type != "Trade") {
             count++
         }
     }
@@ -81,20 +90,20 @@ fun numberOfExtendedTrades() {
 }
 
 fun totalValueOfBuyTrades() {
-    var sum : Double = 0.0
+    var sum : BigDecimal = BigDecimal(0)
     for (i in list) {
-        if(i.getDirection().equals("B")) {
-            sum += (i.getQuantity() * i.getPrice())
+        if(i.direction == "B") {
+            sum += (i.quantity.toBigDecimal() * i.price)
         }
     }
     result.add("Total value of BUY trades and extended trades is " + sum)
 }
 
 fun totalValueOfSellTrades() {
-    var sum : Double = 0.0
+    var sum : BigDecimal = BigDecimal(0)
     for (i in list) {
-        if(i.getDirection().equals("S")) {
-            sum += (i.getQuantity() * i.getPrice())
+        if(i.direction == "S") {
+            sum += (i.quantity.toBigDecimal() * i.price)
         }
     }
     result.add("Total value of SELL trades and extended trades is " + sum)
@@ -104,11 +113,11 @@ fun lengthOfTheLongestComment() {
     var count : Int = 0
     var comment : String? = ""
     for (i in list) {
-        if(i.getType().equals("Trade")) {
-            var length : Int = i.getComment()?.length ?: 0
+        if(i.type == "Trade") {
+            var length : Int = i.comment?.length ?: 0
             if(length  > count) {
                 count = length
-                comment = i.getComment()
+                comment = i.comment
             }
         }
     }
@@ -123,20 +132,51 @@ fun numberOfFirmIDs() {
 
 fun listUniqueFirms() {
     result.add("List of firms IDs: ")
-    set.forEach { result.add((it + "|")) }
+    var res = ""
+    set.forEach { res+=(it + "|") }
+    result.add(res)
 }
 
 fun listProductIDs() {
-    result.add("List product IDs in ascending order along with their values: ")
-    list.sortedWith(CompareTrades).forEach() { result.add(it.getItemID() + " " + it.getPrice()*it.getQuantity()) }
+    result.add("List total values per item ID: ")
+    map.forEach() { result.add(it.key + " " + it.value) }
 }
 
+fun tradeInterval() {
+    var firstTime = list.get(0).date.substring(list.get(0).date.length - 12)
+    var last = list.get(list.size - 1).date.substring(list.get(list.size - 1).date.length - 12)
+    val start = Time(firstTime.substring(0,2).toInt(), firstTime.substring(3,5).toInt(), firstTime.substring(6,8).toInt())
+    val end = Time(last.substring(0,2).toInt(), last.substring(3,5).toInt(), last.substring(6,8).toInt())
+    result.add("Time interval between the first and the last trades: ")
+    result.add(difference(start, end).toString())
+}
+
+// using the function from https://www.programiz.com/kotlin-programming/examples/difference-time
+fun difference(start: Time, stop: Time): Time {
+    val diff = Time(0, 0, 0)
+
+    if (stop.seconds > start.seconds) {
+        --start.minutes
+        start.seconds += 60
+    }
+
+    diff.seconds = start.seconds - stop.seconds
+    if (stop.minutes > start.minutes) {
+        --start.hours
+        start.minutes += 60
+    }
+
+    diff.minutes = start.minutes - stop.minutes
+    diff.hours = start.hours - stop.hours
+
+    return diff
+}
 fun writeInPDF() {
     val document = PDDocument()
     val page = PDPage()
     document.addPage(page)
 
-    val font: PDFont = PDType1Font.HELVETICA_BOLD
+    val font: PDFont = PDType1Font.COURIER
     val contentStream = PDPageContentStream(document, page)
 
     var tx = 100F
@@ -144,8 +184,8 @@ fun writeInPDF() {
     for (line in result) {
         contentStream.beginText()
         contentStream.setFont(font, 12F)
-        contentStream.moveTextPositionByAmount(tx, ty)
-        contentStream.drawString(line)
+        contentStream.newLineAtOffset(tx, ty)
+        contentStream.showText(line)
         contentStream.endText()
         ty -= 20F
     }
