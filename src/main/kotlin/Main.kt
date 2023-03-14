@@ -7,13 +7,15 @@ import org.apache.pdfbox.pdmodel.font.PDFont
 import org.apache.pdfbox.pdmodel.font.PDType1Font
 import java.math.BigDecimal
 import java.nio.file.Paths
+import java.time.Duration
+import java.time.Instant
 import kotlin.io.path.bufferedReader
 
 
-var list = mutableListOf<Trade>()
-var set = mutableSetOf<String>()
-var result = mutableListOf<String>()
-var map = mutableMapOf<String, BigDecimal>()
+val tradeList = mutableListOf<Trade>()
+val setOfBuyersAndSellers = mutableSetOf<String>()
+val result = mutableListOf<String>()
+val valuesOfItemsMap = mutableMapOf<String, BigDecimal>()
 fun main() {
     readWithCSVParser()
     result.add(" * * * SUMMARY * * * ")
@@ -34,7 +36,7 @@ fun main() {
     result.add("")
     listUniqueFirms()
     result.add("")
-    listProductIDs()
+    listTotalsPerItemIDs()
     writeInPDF()
 }
 
@@ -43,34 +45,40 @@ fun readWithCSVParser() {
     val csvParser = CSVParser(bufferedReader, CSVFormat.DEFAULT)
 
     for (csvRecord in csvParser) {
-        var i = 0
-        val type = csvRecord.get(i++)
+        var index = 0
+        val type = csvRecord.get(index++)
         if(type == "Extended trade") {
-            i++
+            index++
         }
-        val dateTime = csvRecord.get(i++)
-        val direction = csvRecord.get(i++)
-        val itemID = csvRecord.get(i++)
-        val price = csvRecord.get(i++)
-        val quantity = csvRecord.get(i++)
-        val seller = csvRecord.get(i++)
-        val buyer = csvRecord.get(i++)
-        set.add(buyer)
-        set.add(seller)
-        val comment = csvRecord.get(i)
+        val dateTime = csvRecord.get(index++)
+        val dateTimeInstant: Instant = Instant.parse(dateTime.substring(0,4) + "-" + dateTime.substring(5,7) + "-" + dateTime.substring(8,10) + "T" + dateTime.substring(11,19) + "." + dateTime.substring(20) + "Z")
+        var direction = csvRecord.get(index++)
+        if(direction == "BUY_") {
+            direction = "B"
+        } else if (direction == "SELL") {
+            direction = "S"
+        }
+        val itemID = csvRecord.get(index++)
+        val price = csvRecord.get(index++)
+        val quantity = csvRecord.get(index++)
+        val seller = csvRecord.get(index++)
+        val buyer = csvRecord.get(index++)
+        setOfBuyersAndSellers.add(buyer)
+        setOfBuyersAndSellers.add(seller)
+        val comment = csvRecord.get(index)
 
-        val t = Trade(type, 0, dateTime, direction, itemID, price.toBigDecimal(), quantity.toInt(), buyer, seller, comment)
-        if(map.containsKey(itemID)) {
-            map[itemID] = map[itemID]!! + price.toBigDecimal() * quantity.toBigDecimal()
+        val trade = Trade(type, dateTimeInstant, direction, price.toBigDecimal(), quantity.toBigDecimal(), comment)
+        if(valuesOfItemsMap.containsKey(itemID)) {
+            valuesOfItemsMap[itemID] = valuesOfItemsMap[itemID]!! + trade.price * trade.quantity
         } else {
-            map[itemID] = price.toBigDecimal() * quantity.toBigDecimal()
+            valuesOfItemsMap[itemID] = trade.price * trade.quantity
         }
-        list.add(t)
+        tradeList.add(trade)
     }
 }
 fun numberOfTrades() {
     var count = 0
-    for (i in list) {
+    for (i in tradeList) {
         if (i.type == "Trade") {
             count++
         }
@@ -80,7 +88,7 @@ fun numberOfTrades() {
 
 fun numberOfExtendedTrades() {
     var count = 0
-    for (i in list) {
+    for (i in tradeList) {
         if (i.type != "Trade") {
             count++
         }
@@ -90,9 +98,9 @@ fun numberOfExtendedTrades() {
 
 fun totalValueOfBuyTrades() {
     var sum = BigDecimal(0)
-    for (i in list) {
+    for (i in tradeList) {
         if(i.direction == "B") {
-            sum += (i.quantity.toBigDecimal() * i.price)
+            sum += (i.quantity * i.price)
         }
     }
     result.add("Total value of BUY trades and extended trades is $sum")
@@ -100,9 +108,9 @@ fun totalValueOfBuyTrades() {
 
 fun totalValueOfSellTrades() {
     var sum = BigDecimal(0)
-    for (i in list) {
+    for (i in tradeList) {
         if(i.direction == "S") {
-            sum += (i.quantity.toBigDecimal() * i.price)
+            sum += (i.quantity * i.price)
         }
     }
     result.add("Total value of SELL trades and extended trades is $sum")
@@ -111,7 +119,7 @@ fun totalValueOfSellTrades() {
 fun lengthOfTheLongestComment() {
     var count = 0
     var comment : String? = ""
-    for (i in list) {
+    for (i in tradeList) {
         if(i.type == "Trade") {
             val length : Int = i.comment?.length ?: 0
             if(length  > count) {
@@ -126,50 +134,41 @@ fun lengthOfTheLongestComment() {
 }
 
 fun numberOfFirmIDs() {
-    result.add("Total number of unique firms: " + set.size)
+    result.add("Total number of unique firms: " + setOfBuyersAndSellers.size)
 }
 
 fun listUniqueFirms() {
     result.add("List of firms IDs: ")
     var res = ""
-    set.forEach { res+=("$it|") }
+    setOfBuyersAndSellers.forEach { res+=("$it|") }
     result.add(res)
 }
 
-fun listProductIDs() {
+fun listTotalsPerItemIDs() {
     result.add("List total values per item ID: ")
-    map.forEach { result.add(it.key + " " + it.value) }
+    val sortedMap = valuesOfItemsMap.toList().sortedBy { (_, value) -> value}.toMap()
+    sortedMap.forEach { result.add(it.key + " " + it.value) }
 }
 
 fun tradeInterval() {
-    val firstTime = list[0].date.substring(list[0].date.length - 12)
-    val last = list[list.size - 1].date.substring(list[list.size - 1].date.length - 12)
-    val start = CustomTime(firstTime.substring(0,2).toInt(), firstTime.substring(3,5).toInt(), firstTime.substring(6,8).toInt())
-    val end = CustomTime(last.substring(0,2).toInt(), last.substring(3,5).toInt(), last.substring(6,8).toInt())
+    var start : Instant = Instant.MAX
+    var end : Instant = Instant.MIN
+
+    for (i in tradeList) {
+        if (i.date.isBefore(start)) {
+            start = i.date
+        }
+        if (i.date.isAfter(end)) {
+            end = i.date
+        }
+    }
+
+    val timeElapsed: Duration = Duration.between(start, end)
+
     result.add("Time interval between the first and the last trades: ")
-    result.add(difference(start, end).toString())
+    result.add(timeElapsed.seconds.toString())
 }
 
-// using the function from https://www.programiz.com/kotlin-programming/examples/difference-time
-fun difference(start: CustomTime, stop: CustomTime): CustomTime {
-    val diff = CustomTime(0, 0, 0)
-
-    if (stop.seconds > start.seconds) {
-        --start.minutes
-        start.seconds += 60
-    }
-
-    diff.seconds = start.seconds - stop.seconds
-    if (stop.minutes > start.minutes) {
-        --start.hours
-        start.minutes += 60
-    }
-
-    diff.minutes = start.minutes - stop.minutes
-    diff.hours = start.hours - stop.hours
-
-    return diff
-}
 fun writeInPDF() {
     val document = PDDocument()
     val page = PDPage()

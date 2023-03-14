@@ -1,21 +1,18 @@
 import java.math.BigDecimal
+import java.time.Instant
 
 class Trade constructor (
-    public var type: String? = null,
-    public var version: Int = 0,
-    public var date: String = "",
-    public var direction: String? = null,
-    public var itemID: String? = null,
-    public var price: BigDecimal = BigDecimal(0),
-    public var quantity: Int = 0,
-    public var buyer: String? = null,
-    public var seller: String? = null,
-    public var comment: String? = null
+    val type: String? = null,
+    val date: Instant,
+    val direction: String? = null,
+    val price: BigDecimal = BigDecimal(0),
+    val quantity: BigDecimal = BigDecimal(0),
+    val comment: String? = null
 ) {
     operator fun compareTo(trade: Trade): Int {
-        return if ((price * quantity.toBigDecimal()) > (trade.price * trade.quantity.toBigDecimal())) {
+        return if ((price * quantity) > (trade.price * trade.quantity)) {
             1
-        } else if ((price * quantity.toBigDecimal()) < (trade.price * trade.quantity.toBigDecimal())) {
+        } else if ((price * quantity) < (trade.price * trade.quantity)) {
             -1
         } else 0
     }
