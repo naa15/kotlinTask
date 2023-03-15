@@ -51,7 +51,9 @@ fun readWithCSVParser() {
             index++
         }
         val dateTime = csvRecord.get(index++)
-        val dateTimeInstant: Instant = Instant.parse(dateTime.substring(0,4) + "-" + dateTime.substring(5,7) + "-" + dateTime.substring(8,10) + "T" + dateTime.substring(11,19) + "." + dateTime.substring(20) + "Z")
+        val dateTimeInstant: Instant = Instant.parse(dateTime.substring(0,4) + "-"
+                + dateTime.substring(5,7) + "-" + dateTime.substring(8,10) + "T"
+                + dateTime.substring(11,19) + "." + dateTime.substring(20) + "Z")
         var direction = csvRecord.get(index++)
         if(direction == "BUY_") {
             direction = "B"
